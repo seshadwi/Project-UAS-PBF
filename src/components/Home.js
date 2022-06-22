@@ -1,15 +1,26 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { Navbar } from './Navbar';
+import { Products } from './Products'
+import { useHistory } from 'react-router-dom'
+import { auth } from '../Config/Config'
 
-const Home = (handleLogout) => {
+export const Home = ({ user }) => {
+
+    const history = useHistory();
+
+    useEffect(() => {
+        // forcing user to signup
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                history.push('/login');
+            }
+        })
+    })
+
     return (
-        <section className="hero">
-            <nav>
-                <h2>Welcome</h2>
-                <button onClick={handleLogout}>Logout</button>
-            </nav>
-        </section>
-
+        <div className='wrapper'>
+            <Navbar user={user} />
+            <Products />
+        </div>
     )
 }
-
-export default Home;
