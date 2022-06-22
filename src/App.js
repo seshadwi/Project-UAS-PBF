@@ -1,105 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import './App.css';
-import fire from './firebase';
-import Login from './components/auth/Login';
-import Home from './components/Home';
+import React, { Component } from 'react'
+import { ProductsContextProvider } from './Global/ProductsContext'
+import { Home } from './Components/Home'
+import { BrowserRouter, Switch, Route } from 'react-router-dom'
+import { Signup } from './Components/Signup'
+import { Login } from './Components/Login'
+import { NotFound } from './Components/NotFound'
+import { auth, db } from './Config/Config'
+import { CartContextProvider } from './Global/CartContext'
+import { Cart } from './Components/Cart'
+import { AddProducts } from './Components/AddProducts'
+import { Cashout } from './Components/Cashout'
 
-const App = () => {
-  const [user, setUser] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [hasAccount, setHasAccount] = useState(false);
+export class App extends Component {
 
-  const clearInputs = () => {
-    setEmail('');
-    setPassword('');
-  }
+    state = {
+        user: null,
+    }
 
-  const clearErrors = () => {
-    setEmailError('');
-    setPasswordError('');
-  }
+    componentDidMount() {
 
-  const handleLogin = () => {
-    clearErrors();
-    fire
-      .auth()
-      .signInWithEmailAndPassword(email, password)
-      .catch((err) => {
-        switch (err.code) {
-          case "auth/invalid-email":
-          case "auth/user-disabled":
-          case "auth/user-not-found":
-            setEmailError(err.message);
-            break;
-          case "auth/wrong-password":
-            setPasswordError(err.message);
-            break;
-        }
-      });
-  };
+        // getting user info for navigation bar
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                db.collection('SignedUpUsersData').doc(user.uid).get().then(snapshot => {
+                    this.setState({
+                        user: snapshot.data().Name
+                    })
+                })
+            }
+            else {
+                this.setState({
+                    user: null
+                })
+            }
+        })
 
-  const handleSignup = () => {
-    clearErrors();
-    fire
-      .auth()
-      .createUserWithEmailAndPassword(email, password)
-      .catch((err) => {
-        switch (err.code) {
-          case "auth/email-already-in-use":
-          case "auth/invalid-email":
-            setEmailError(err.message);
-            break;
-          case "auth/weak-password":
-            setPasswordError(err.message);
-            break;
-        }
-      });
-  };
+    }
 
-  const handleLogout = () => {
-    fire.auth().signOut();
-  }
-
-  const authListener = () => {
-    fire.auth().onAuthStateChanged(user => {
-      if (user) {
-        clearInputs();
-        setUser(user);
-      } else {
-        setUser("");
-      }
-    })
-  }
-
-  useEffect(() => {
-    authListener();
-  }, []);
-
-
-
-  return (
-    <div className="App">
-      {user ? (
-        <Home handleLogout={handleLogout} />
-      ) : (
-        <Login
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          handleLogin={handleLogin}
-          handleSignup={handleSignup}
-          hasAccount={hasAccount}
-          setHasAccount={setHasAccount}
-          emailError={emailError}
-          passwordError={passwordError}
-        />
-      )}
-    </div>
-  );
+    render() {
+        return (
+            <ProductsContextProvider>
+                <CartContextProvider>
+                    <BrowserRouter>
+                        <Switch>
+                            {/* home */}
+                            <Route exact path='/' component={() => <Home user={this.state.user} />} />
+                            {/* signup */}
+                            <Route path="/signup" component={Signup} />
+                            {/* login */}
+                            <Route path="/login" component={Login} />
+                            {/* cart products */}
+                            <Route path="/cartproducts" component={() => <Cart user={this.state.user} />} />
+                            {/* add products */}
+                            <Route path="/addproducts" component={AddProducts} />
+                            {/* cashout */}
+                            <Route path='/cashout' component={() => <Cashout user={this.state.user} />} />
+                            <Route component={NotFound} />
+                        </Switch>
+                    </BrowserRouter>
+                </CartContextProvider>
+            </ProductsContextProvider>
+        )
+    }
 }
 
-export default App;
+export default App
